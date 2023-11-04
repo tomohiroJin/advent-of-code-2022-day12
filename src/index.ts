@@ -20,9 +20,13 @@ export const inputMap = (map: string): string[] => {
 };
 
 const getPosition = (arrayMap: string[], position: Positions): PositionType => {
-  const row = arrayMap.find((strRow) => strRow.includes(position.value));
-  if (!row) throw new Error(`${position.value}が見つかりませんでした。`);
-  return { x: row.indexOf(position.value), y: arrayMap.indexOf(row) };
+  for (let y = 0; y < arrayMap.length; y++) {
+    const x = arrayMap[y].indexOf(position.value);
+    if (x !== -1) {
+      return { x, y };
+    }
+  }
+  throw new Error(`${position.value}が見つかりませんでした。`);
 };
 
 export const getCurrentPosition = (arrayMap: string[]): PositionType =>
@@ -31,14 +35,16 @@ export const getCurrentPosition = (arrayMap: string[]): PositionType =>
 export const getOptimalSignalPosition = (arrayMap: string[]): PositionType =>
   getPosition(arrayMap, Positions.OPTIMAL_SIGNAL_POSITION);
 
+const elevationMapping = Object.fromEntries(
+  AllPositions.map((pos) => [pos.value, pos.elevation])
+);
+
 export const getElevationMap = (arrayMap: string[]): number[][] =>
-  arrayMap.map((map) =>
-    Array.from(map).map((char) => {
-      const elevation = AllPositions.find(
-        (position) => char === position.value
-      )?.elevation;
-      return elevation ?? char.charCodeAt(0) - "a".charCodeAt(0) + 1;
-    })
+  arrayMap.map((mapRow) =>
+    Array.from(mapRow).map(
+      (char) =>
+        elevationMapping[char] ?? char.charCodeAt(0) - "a".charCodeAt(0) + 1
+    )
   );
 
 type MoveType = (
@@ -111,37 +117,74 @@ export const isPosition = (
 ): boolean =>
   srcPosition.x === dstPosition.x && srcPosition.y === dstPosition.y;
 
-export const traverseToOptimalSignal = (
-  elevationMap: number[][],
-  currentPosition: PositionType,
-  optimalSignalPosition: PositionType,
-  traversedPositions: PositionType[]
-): PositionType[] => {
-  const routes = getAdjacentPositions(elevationMap, currentPosition)
-    .map((nextPosition) =>
-      isPosition(currentPosition, nextPosition) ||
-      traversedPositions.some((position) => isPosition(nextPosition, position))
-        ? null
-        : isPosition(nextPosition, optimalSignalPosition)
-        ? [...traversedPositions, currentPosition, nextPosition]
-        : traverseToOptimalSignal(
-            elevationMap,
-            nextPosition,
-            optimalSignalPosition,
-            [...traversedPositions, currentPosition]
-          )
-    )
-    .filter((route) => route !== null);
+export type Queue<T> = {
+  enqueue: (item: T) => void;
+  dequeue: () => T | undefined;
+  isEmpty: () => boolean;
+};
 
-  if (routes.length === 0) return [];
+export const createQueue = <T>(): Queue<T> => {
+  const data: T[] = [];
+  let head = 0;
+  let tail = 0;
 
-  return (
-    routes.reduce((shortestRoute, route) => {
-      // null は filter で除去しているのでありえない
-      if (shortestRoute === null || route === null) return [];
-      return route.length < shortestRoute.length ? route : shortestRoute;
-    }) ?? []
-  );
+  const enqueue = (item: T): void => {
+    data[tail] = item;
+    tail++;
+  };
+
+  const dequeue = (): T | undefined => {
+    if (head < tail) {
+      const item = data[head];
+      head++;
+      if (head === tail) {
+        head = 0;
+        tail = 0;
+      }
+      return item;
+    }
+    return undefined;
+  };
+
+  const isEmpty = (): boolean => {
+    return head === tail;
+  };
+
+  return {
+    enqueue,
+    dequeue,
+    isEmpty,
+  };
+};
+
+export const createVisitedBitmap = (elevationMap: number[][]) => {
+  const width = elevationMap[0].length;
+  const height = elevationMap.length;
+  let visitedBitmap = new BigUint64Array(width * height);
+
+  const isVisited = (x: number, y: number): boolean => {
+    const index = y * width + x;
+    const byteIndex = Math.floor(index / 64);
+    const bitIndex = index % 64;
+    return (visitedBitmap[byteIndex] & (1n << BigInt(bitIndex))) !== 0n;
+  };
+
+  const setVisited = (x: number, y: number): void => {
+    const index = y * width + x;
+    const byteIndex = Math.floor(index / 64);
+    const bitIndex = index % 64;
+    visitedBitmap[byteIndex] |= 1n << BigInt(bitIndex);
+  };
+
+  return {
+    isVisited,
+    setVisited,
+  };
+};
+
+type RouteNode = {
+  position: PositionType;
+  stepCount: number;
 };
 
 export const getShortestStepCount = (map: string): number => {
@@ -149,11 +192,38 @@ export const getShortestStepCount = (map: string): number => {
   const currentPosition = getCurrentPosition(strMap);
   const optimalSignalPosition = getOptimalSignalPosition(strMap);
   const elevationMap = getElevationMap(strMap);
-  const route = traverseToOptimalSignal(
-    elevationMap,
-    currentPosition,
-    optimalSignalPosition,
-    []
-  );
-  return 31;
+  const width = elevationMap[0].length;
+  const visited = createVisitedBitmap(elevationMap);
+
+  const queue = createQueue<RouteNode>();
+  queue.enqueue({ position: currentPosition, stepCount: 0 });
+  while (!queue.isEmpty()) {
+    const currentNode = queue.dequeue();
+    if (!currentNode) break;
+
+    const { position, stepCount } = currentNode;
+    const { x, y } = position;
+
+    if (isPosition(position, optimalSignalPosition)) {
+      return stepCount;
+    }
+
+    if (visited.isVisited(x, y)) continue;
+    visited.setVisited(x, y);
+
+    for (const adjacentPosition of getAdjacentPositions(
+      elevationMap,
+      position
+    )) {
+      const adjacentKey = adjacentPosition.x + adjacentPosition.y * width;
+      if (!visited.isVisited(adjacentPosition.x, adjacentPosition.y)) {
+        queue.enqueue({
+          position: adjacentPosition,
+          stepCount: stepCount + 1,
+        });
+      }
+    }
+  }
+
+  throw new Error("最適な信号位置に到達できませんでした。");
 };
