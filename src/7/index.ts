@@ -21,7 +21,7 @@ export const createDirectoryFromString = (
   currentPath: Path,
   inputString: string
 ): File => {
-  const newDirectory = inputString.replace(/dir /, "");
+  const newDirectory = inputString.replace(/^dir /, "");
   return {
     name: joinPathSegments(currentPath, newDirectory),
     type: FileType.Directory,
@@ -42,7 +42,7 @@ export const createFileFromString = (
 };
 
 export const changeDirectory = (currentPath: Path, command: string): Path => {
-  const newDirectory = command.replace(/\$ cd /, "");
+  const newDirectory = command.replace(/^\$ cd /, "");
   if (newDirectory === PATH_SEPARATOR) {
     return PATH_SEPARATOR;
   } else if (newDirectory === "..") {
