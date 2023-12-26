@@ -10,7 +10,6 @@ export const repeatDifferences = (sequence: number[]): number[][] => {
 
 export const extrapolateNextValue = (sequence: number[]): number => {
   const differenceSequences = repeatDifferences(sequence);
-  console.log(differenceSequences);
   let nextValue = 0;
 
   for (let diffs of differenceSequences) {
