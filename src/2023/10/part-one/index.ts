@@ -1,3 +1,5 @@
+import { createQueue } from "../../../lib/que";
+
 type Coordinate = {
   x: number;
   y: number;
@@ -27,46 +29,6 @@ const PIPE_CONNECTIONS: Record<string, Coordinate[]> = {
   "7": [DIRECTIONS.S, DIRECTIONS.W],
   F: [DIRECTIONS.S, DIRECTIONS.E],
   S: [DIRECTIONS.N, DIRECTIONS.E, DIRECTIONS.S, DIRECTIONS.W],
-};
-
-type Queue<T> = {
-  enqueue: (item: T) => void;
-  dequeue: () => T | undefined;
-  isEmpty: () => boolean;
-};
-
-const createQueue = <T>(): Queue<T> => {
-  const data: T[] = [];
-  let head = 0;
-  let tail = 0;
-
-  const enqueue = (item: T): void => {
-    data[tail] = item;
-    tail++;
-  };
-
-  const dequeue = (): T | undefined => {
-    if (head < tail) {
-      const item = data[head];
-      head++;
-      if (head === tail) {
-        head = 0;
-        tail = 0;
-      }
-      return item;
-    }
-    return undefined;
-  };
-
-  const isEmpty = (): boolean => {
-    return head === tail;
-  };
-
-  return {
-    enqueue,
-    dequeue,
-    isEmpty,
-  };
 };
 
 const getKeyByValue = (
