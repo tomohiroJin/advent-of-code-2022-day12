@@ -35,9 +35,19 @@ test("与えられた文字列をビットに変換する", () => {
   expect(actual).toEqual(5);
 });
 
-test("ビット排他的論理和を取り出しその結果から0を除去した場合に1ならtrueを返す", () => {
+test("ビット排他的論理和を取り出しその結果一致した場合trueを返す", () => {
   const actual = isSingleBitDifference(0b0101, 0b0101);
+  expect(actual).toBeFalsy();
+});
+
+test("ビット排他的論理和を取り出しその結果が1か所のみの違いの場合trueを返す", () => {
+  const actual = isSingleBitDifference(0b0111, 0b0101);
   expect(actual).toBeTruthy();
+});
+
+test("ビット排他的論理和を取り出しその結果が1か所以上の違いの場合falseを返す", () => {
+  const actual = isSingleBitDifference(0b0111, 0b1101);
+  expect(actual).toBeFalsy();
 });
 
 test("複数のパターンが正しく読み込まれ、分析されること", () => {
@@ -120,8 +130,16 @@ describe("findReflectionLineIndex", () => {
   const noReflectionPattern = ["##..###", ".#..#.#", ".#..#.#", "#....#."];
 
   test("現在の行とその次の行が同じ個所のインデックスを返す", () => {
-    const actual = findMatchingIndicesBetweenRows(reflectionPattern);
-    expect(actual).toEqual([4]);
+    const actual = findMatchingIndicesBetweenRows([
+      "#.##..##.",
+      "..#.##.#.",
+      "##......#",
+      "##......#",
+      "..#.##.#.",
+      "..##..##.",
+      "#.#.##.#.",
+    ]);
+    expect(actual).toEqual([2]);
   });
 
   test("現在の行とその次の行が同じ個所が複数ある場合そのすべてのインデックスを返す", () => {
@@ -153,8 +171,22 @@ describe("findReflectionLineIndex", () => {
     expect(actual).toBe(2);
   });
 
-  test("選択された位置から上下に反射が一致する場合はTrueを返す", () => {
-    const actual = existsReflectionLine(reflectionPattern, 4, 3);
+  test("選択された位置から上下に汚れひとつの場合はTrueを返す", () => {
+    const actual = existsReflectionLine(
+      [
+        "#.##..#",
+        "..##.#.",
+        "##..###",
+        "#....#.",
+        ".#..#.#",
+        ".#..#.#",
+        "#....#.",
+        "##..###",
+        "..##...",
+      ],
+      4,
+      3
+    );
     expect(actual).toBeTruthy();
   });
 
@@ -163,14 +195,43 @@ describe("findReflectionLineIndex", () => {
     expect(actual).toBeFalsy();
   });
 
+  test("選択された位置から上下の反射に汚れが1か所以上ある場合は2度目以降は修正せずにfalseを返す", () => {
+    const actual = existsReflectionLine(
+      [
+        "#.##..#",
+        "..##.#.",
+        "##..###",
+        "#.#..#.",
+        ".#..#.#",
+        ".#..#.#",
+        "#....#.",
+        "##..###",
+        "..##...",
+      ],
+      4,
+      3
+    );
+    expect(actual).toBeFalsy();
+  });
+
   test("反射線が正しく識別されること", () => {
-    const actual = findReflectionLineIndex(reflectionPattern);
+    const actual = findReflectionLineIndex([
+      "#.##..#",
+      "..##.#.",
+      "##..###",
+      "#....#.",
+      ".#..#.#",
+      ".#..#.#",
+      "#....#.",
+      "##..###",
+      "..##...",
+    ]);
     expect(actual).toBe(5);
   });
 
   test("反射線が最終行でも正しく識別されること", () => {
     const actual = findReflectionLineIndex(lastRowReflectionPattern);
-    expect(actual).toBe(10);
+    expect(actual).toBe(5);
   });
 
   test("反射線でない場合にNaNが返されること", () => {

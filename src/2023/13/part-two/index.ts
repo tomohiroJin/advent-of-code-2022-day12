@@ -5,7 +5,6 @@ type ReflectionPatterns = [
   HorizontalReflectionPattern[],
   VerticalReflectionPattern[]
 ];
-
 export const convertPatternsToArrays = (
   reflectionsMap: string
 ): ReflectionPatterns => {
@@ -41,7 +40,7 @@ export const isSingleBitDifference = (
 ): boolean => {
   const xorResult = first ^ second;
   if (xorResult === 0) {
-    false;
+    return false;
   }
   return (xorResult & (xorResult - 1)) === 0;
 };
@@ -51,7 +50,13 @@ export const findMatchingIndicesBetweenRows = (
 ): number[] => {
   const indexes: number[] = [];
   for (let i = 0; i < reflectionPattern.length - 1; i += 1) {
-    if (reflectionPattern[i] === reflectionPattern[i + 1]) {
+    if (
+      isSingleBitDifference(
+        convertPatternToBits(reflectionPattern[i]),
+        convertPatternToBits(reflectionPattern[i + 1])
+      ) ||
+      reflectionPattern[i] === reflectionPattern[i + 1]
+    ) {
       indexes.push(i);
     }
   }
@@ -74,15 +79,30 @@ export const existsReflectionLine = (
   index: number,
   size: number
 ): boolean => {
-  return [...Array(size).keys()].every((offset) => {
-    const aboveIndex = index - offset - 1;
-    const belowIndex = index + offset + 2;
-    return (
-      aboveIndex >= 0 &&
-      belowIndex < reflectionPattern.length &&
-      reflectionPattern[aboveIndex] === reflectionPattern[belowIndex]
-    );
-  });
+  let isOneSmudge = false;
+  return (
+    [...Array(size + 1).keys()].every((offset) => {
+      const aboveIndex = index - offset;
+      const belowIndex = index + offset + 1;
+      const isQuery = isOneSmudge
+        ? reflectionPattern[aboveIndex] === reflectionPattern[belowIndex]
+        : isSingleBitDifference(
+            convertPatternToBits(reflectionPattern[aboveIndex]),
+            convertPatternToBits(reflectionPattern[belowIndex])
+          ) || reflectionPattern[aboveIndex] === reflectionPattern[belowIndex];
+
+      isOneSmudge =
+        isOneSmudge ||
+        isSingleBitDifference(
+          convertPatternToBits(reflectionPattern[aboveIndex]),
+          convertPatternToBits(reflectionPattern[belowIndex])
+        );
+
+      return (
+        aboveIndex >= 0 && belowIndex < reflectionPattern.length && isQuery
+      );
+    }) && isOneSmudge
+  );
 };
 
 export const findReflectionLineIndex = (
