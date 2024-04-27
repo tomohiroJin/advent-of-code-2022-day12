@@ -1,15 +1,20 @@
-export const returnNumber = (num: number): string => String(num);
-export const returnFizz = (num: number): string | undefined =>
-  num % 3 === 0 ? "Fizz" : undefined;
-export const returnBuzz = (num: number): string | undefined =>
-  num % 5 === 0 ? "Buzz" : undefined;
-export const returnFizzBuzz = (num: number): string | undefined =>
-  num % 15 === 0 ? "FizzBuzz" : undefined;
+const COUNT_WORDS = [
+  [15, "FizzBuzz"],
+  [5, "Buzz"],
+  [3, "Fizz"],
+] as const;
+
+export const returnWord = (
+  num: number,
+  divisor: number,
+  word: string
+): string | undefined => (num % divisor === 0 ? word : undefined);
+
 export const fizzBuzz = (num: number): string[] =>
   Array.from({ length: num }, (_, index) => index + 1).map(
     (num) =>
-      returnFizzBuzz(num) ??
-      returnBuzz(num) ??
-      returnFizz(num) ??
-      returnNumber(num)
+      COUNT_WORDS.reduce<string | undefined>(
+        (acc, val) => acc ?? returnWord(num, val[0], val[1]),
+        undefined
+      ) ?? String(num)
   );
