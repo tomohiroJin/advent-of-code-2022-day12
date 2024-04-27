@@ -1,8 +1,7 @@
-const COUNT_WORDS = [
-  [15, "FizzBuzz"],
-  [5, "Buzz"],
+const COUNT_WORDS: [number, string][] = [
   [3, "Fizz"],
-] as const;
+  [5, "Buzz"],
+];
 
 export const returnWord = (
   num: number,
@@ -13,8 +12,7 @@ export const returnWord = (
 export const fizzBuzz = (num: number): string[] =>
   Array.from({ length: num }, (_, index) => index + 1).map(
     (num) =>
-      COUNT_WORDS.reduce<string | undefined>(
-        (acc, val) => acc ?? returnWord(num, val[0], val[1]),
-        undefined
-      ) ?? String(num)
+      COUNT_WORDS.map(([divisor, word]) => returnWord(num, divisor, word)).join(
+        ""
+      ) || String(num)
   );
