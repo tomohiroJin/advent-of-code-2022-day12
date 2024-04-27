@@ -3,16 +3,12 @@ const COUNT_WORDS: [number, string][] = [
   [5, "Buzz"],
 ];
 
-export const returnWord = (
-  num: number,
-  divisor: number,
-  word: string
-): string | undefined => (num % divisor === 0 ? word : undefined);
-
-export const fizzBuzz = (num: number): string[] =>
-  Array.from({ length: num }, (_, index) => index + 1).map(
-    (num) =>
-      COUNT_WORDS.map(([divisor, word]) => returnWord(num, divisor, word)).join(
+export const fizzBuzz = (maxNumber: number): string[] =>
+  Array.from({ length: maxNumber }, (_, index) => index + 1).map(
+    (currentNumber) =>
+      COUNT_WORDS.reduce<string>(
+        (acc, [divisor, word]) =>
+          currentNumber % divisor === 0 ? acc + word : acc,
         ""
-      ) || String(num)
+      ) || String(currentNumber)
   );
