@@ -9,11 +9,11 @@ export const bowlingGame = (): [Roll, Score] => {
   const LAST_FRAME = 10;
 
   let total: number = 0;
-  let gameOver = false;
-  let spare = false;
   let strike = false;
-  let oneFrame: number[] = [];
+  let spare = false;
+  let frame: number[] = [];
   let frameCounter = 0;
+  let gameOver = false;
 
   const score = () =>
     gameOver
@@ -23,11 +23,22 @@ export const bowlingGame = (): [Roll, Score] => {
       : total;
 
   const roll = (pins: number): void => {
-    oneFrame.push(pins);
-    const frameTotal = sum(oneFrame);
-    const frameOut = oneFrame.length >= 2;
-    const allPinsFall = pins === MAX_PINS;
-    const allPinsFallFrame = frameTotal === MAX_PINS;
+    if (frame.length === 0) {
+      frameCounter += 1;
+    }
+
+    frame.push(pins);
+    const lastFrame = frameCounter === LAST_FRAME;
+    const frameTotal = sum(frame);
+
+    gameOver =
+      gameOver ||
+      pins < 0 ||
+      pins > MAX_PINS ||
+      (!lastFrame && frameTotal > MAX_PINS) ||
+      frameCounter > LAST_FRAME;
+
+    if (gameOver) return;
 
     total += pins;
 
@@ -42,37 +53,16 @@ export const bowlingGame = (): [Roll, Score] => {
       strike = false;
     }
 
-    strike = oneFrame.length === 1 && allPinsFall;
-    spare = spare || (frameOut && allPinsFallFrame);
+    strike = frame.length === 1 && pins === MAX_PINS && !lastFrame;
+    spare =
+      spare || (frame.length === 2 && frameTotal === MAX_PINS && !lastFrame);
 
-    if (frameOut || strike) {
-      frameCounter += 1;
-
-      if (
-        oneFrame.length === 2 &&
-        allPinsFallFrame &&
-        frameCounter === LAST_FRAME
-      ) {
-        spare = false;
-      }
-
-      if (
-        oneFrame.length < 3 &&
-        frameCounter === LAST_FRAME &&
-        (allPinsFall || allPinsFallFrame)
-      ) {
-        strike = false;
-        frameCounter -= 1;
-      } else {
-        oneFrame = [];
-      }
+    if (
+      (frame.length >= 2 && (!lastFrame || frameTotal < MAX_PINS)) ||
+      strike
+    ) {
+      frame = [];
     }
-
-    gameOver =
-      pins < 0 ||
-      pins > MAX_PINS ||
-      (frameCounter !== LAST_FRAME && frameTotal > MAX_PINS) ||
-      frameCounter > LAST_FRAME;
   };
 
   return [roll, score];

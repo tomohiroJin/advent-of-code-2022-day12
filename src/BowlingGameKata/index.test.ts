@@ -119,10 +119,10 @@ test("全てストライクでフィニッシュした場合スコア 300 点に
 
 test("全てスペアでフィニッシュした場合スコア 155 点になる", () => {
   const [roll, score] = bowlingGame();
-  Array(22)
+  Array(21)
     .fill(5)
     .forEach((val) => roll(val));
-  expect(score()).toBe("Final Frame Complete! Total Score: 155");
+  expect(score()).toBe("Final Frame Complete! Total Score: 150");
 });
 
 test("全て 1 ピンでフィニッシュした場合スコア 20 点になる", () => {
