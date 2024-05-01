@@ -117,7 +117,7 @@ test("全てストライクでフィニッシュした場合スコア 300 点に
   expect(score()).toBe("Final Frame Complete! Total Score: 300");
 });
 
-test("全てスペアでフィニッシュした場合スコア 155 点になる", () => {
+test("全てスペアでフィニッシュした場合スコア 150 点になる", () => {
   const [roll, score] = bowlingGame();
   Array(21)
     .fill(5)
@@ -139,4 +139,61 @@ test("全てガーターでフィニッシュした場合スコア 0 点にな�
     .fill(0)
     .forEach((val) => roll(val));
   expect(score()).toBe("Final Frame Complete! Total Score: 0");
+});
+describe("色々なケースを追加", () => {
+  test("ストライク後にスペアが来た場合のスコア計算", () => {
+    const [roll, score] = bowlingGame();
+    roll(10);
+    roll(5);
+    roll(5);
+    roll(3);
+    expect(score()).toBe(36);
+  });
+
+  test("連続3ストライク後にスペアが来た場合のスコア計算", () => {
+    const [roll, score] = bowlingGame();
+    roll(10);
+    roll(10);
+    roll(10);
+    roll(5);
+    roll(5);
+    roll(3);
+    expect(score()).toBe(91);
+  });
+
+  test("スペア時のスコア計算", () => {
+    const [roll, score] = bowlingGame();
+    roll(9);
+    roll(1);
+    roll(3);
+    expect(score()).toBe(16);
+  });
+
+  test("最終フレームで連続ストライク後にガーターが正確に計算される", () => {
+    const [roll, score] = bowlingGame();
+    Array(18).fill(0).forEach(roll);
+    roll(10);
+    roll(10);
+    roll(0);
+    expect(score()).toBe("Final Frame Complete! Total Score: 20");
+  });
+
+  test("スペア後のストライクとその次の投球が正確に計算される", () => {
+    const [roll, score] = bowlingGame();
+    roll(5);
+    roll(5);
+    roll(10);
+    roll(3);
+    roll(4);
+    expect(score()).toBe(44);
+  });
+
+  test("ストライク後に9ピン倒して次に1ピンでスペアを完成させた場合の計算", () => {
+    const [roll, score] = bowlingGame();
+    roll(10);
+    roll(9);
+    roll(1);
+    roll(4);
+    expect(score()).toBe(38);
+  });
 });
