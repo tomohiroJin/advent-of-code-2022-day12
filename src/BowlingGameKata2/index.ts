@@ -1,9 +1,8 @@
 type Roll = (pins: number) => void;
-type Score = () => number | string;
+type Score = () => number;
 
-export const bowlingGame = (): [Roll, Score] => {
-  let rolls = Array(21).fill(0);
-  let currentRoll = 0;
+export const bowlingGame = (currentRoll = 0): [Roll, Score] => {
+  const rolls = Array(21).fill(0);
 
   const isStrike = (frameIndex: number): boolean => rolls[frameIndex] == 10;
 
@@ -20,10 +19,9 @@ export const bowlingGame = (): [Roll, Score] => {
 
   const roll = (pins: number) => (rolls[currentRoll++] = pins);
   const score = () => {
-    let score = 0;
     let frameIndex = 0;
 
-    for (let frame = 0; frame < 10; frame++) {
+    return Array.from({ length: 10 }).reduce<number>((score) => {
       if (isStrike(frameIndex)) {
         score += 10 + strikeBonus(frameIndex);
         frameIndex++;
@@ -34,8 +32,8 @@ export const bowlingGame = (): [Roll, Score] => {
         score += sumOfBallsInFrame(frameIndex);
         frameIndex += 2;
       }
-    }
-    return score;
+      return score;
+    }, 0);
   };
 
   return [roll, score];
