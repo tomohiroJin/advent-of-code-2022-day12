@@ -140,6 +140,7 @@ test("全てガーターでフィニッシュした場合スコア 0 点にな�
     .forEach((val) => roll(val));
   expect(score()).toBe("Final Frame Complete! Total Score: 0");
 });
+
 describe("色々なケースを追加", () => {
   test("ストライク後にスペアが来た場合のスコア計算", () => {
     const [roll, score] = bowlingGame();
