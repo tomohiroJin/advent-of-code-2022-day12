@@ -8,5 +8,8 @@ dist/
 .env
 
 # IDEs and editors
+.gitignore
+.history
 .idea/
 .vscode/
+.package-lock.json
