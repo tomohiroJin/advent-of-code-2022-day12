@@ -1,8 +1,9 @@
 type Roll = (pins: number) => void;
 type Score = () => number;
 
-export const bowlingGame = (currentRoll = 0): [Roll, Score] => {
+export const bowlingGame = (): [Roll, Score] => {
   const rolls = Array(21).fill(0);
+  let currentRoll = 0;
 
   const isStrike = (frameIndex: number): boolean => rolls[frameIndex] == 10;
 
