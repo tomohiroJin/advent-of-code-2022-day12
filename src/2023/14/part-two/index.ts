@@ -1,24 +1,68 @@
-const EMPTY_SPACE = "."; // 空きスペースを表す定数
-const CIRCLE_LOCK = "O"; // 丸い岩を表す定数
-const SQUARE_LOCK = "#"; // 四角い岩を表す定数
+/**
+ * 空きスペースを表す定数
+ */
+const EMPTY_SPACE = ".";
 
+/**
+ * 丸い岩を表す定数
+ */
+const CIRCLE_LOCK = "O";
+
+/**
+ * 四角い岩を表す定数
+ */
+const SQUARE_LOCK = "#";
+
+/**
+ * マップ要素とその対応する文字を表すオブジェクト
+ * @constant
+ */
 const MapElements = {
   [EMPTY_SPACE]: "space",
   [SQUARE_LOCK]: "squareLock",
   [CIRCLE_LOCK]: "circleLock",
 } as const;
 
+/**
+ * MapElementsのキーの型（"." | "#" | "O"）
+ */
+type MapElementCharacters = keyof typeof MapElements;
+
+/**
+ * MapElementsの値の型（"space" | "squareLock" | "circleLock"）
+ */
+type Elements = (typeof MapElements)[MapElementCharacters];
+
+/**
+ * マップ内の要素の属性を表す型
+ * @property {number} x - 要素のx座標
+ * @property {number} y - 要素のy座標
+ * @property {Elements} element - 要素の種類（"space" | "squareLock" | "circleLock"）
+ */
 type MapAttribute = {
   x: number;
   y: number;
   element: Elements;
 };
 
-type MapElementCharacters = keyof typeof MapElements;
-type Elements = (typeof MapElements)[MapElementCharacters];
-
+/**
+ * 方向を表す列挙型
+ */
 type Direction = "North" | "South" | "East" | "West";
 
+/**
+ * マップを解析する関数の型
+ * @param {string} map - マップの文字列
+ * @returns {Object} - 解析されたマップに関する操作を提供するオブジェクト
+ * @property {Function} show - 現在のマップを文字列として表示する関数
+ * @property {Function} analyzeMapAttributes - マップの属性を解析して返す関数
+ * @property {Function} liver - 指定された方向に岩を移動させる関数
+ * @property {Function} calculateTotalWeight - 現在のマップの岩の総重量を計算する関数
+ * @property {Function} performCycle - マップ内の岩を回転させる1サイクルを実行する関数
+ * @property {Function} cycleStartIndex - サイクルの開始インデックスを取得する関数
+ * @property {Function} cycleLength - サイクルの長さを取得する関数
+ * @property {Function} calculateResultAfterCycles - 指定されたサイクル数後の岩の総重量を計算する関数
+ */
 type AnalyzedMapType = (map: string) => {
   show: () => string;
   analyzeMapAttributes: () => MapAttribute[][];
@@ -30,15 +74,32 @@ type AnalyzedMapType = (map: string) => {
   calculateResultAfterCycles: (totalCycles: number) => number;
 };
 
+/**
+ * 指定された文字が MapElementCharacters 型かどうかを判定します。
+ * @param {string} char - 判定する文字。
+ * @returns {boolean} - 文字が MapElementCharacters 型である場合に true を返します。
+ */
 const isMapElementCharacters = (char: string): char is MapElementCharacters => {
   return char in MapElements;
 };
 
+/**
+ * 与えられた2次元配列の行と列を転置します。
+ * @param {T[][]} matrix - 転置する2次元配列。
+ * @returns {T[][]} - 転置された2次元配列。
+ */
 const transpose = <T>(matrix: T[][]): T[][] => {
   return matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
 };
 
-const swapArrayElements = <T>(
+/**
+ * 指定された2つのインデックス位置の要素をスワップした新しい配列を返します。
+ * @param {MapAttribute[]} arr - 要素をスワップする配列。
+ * @param {number} index1 - スワップする最初のインデックス。
+ * @param {number} index2 - スワップする2つ目のインデックス。
+ * @returns {MapAttribute[]} - 指定された要素がスワップされた新しい配列。
+ */
+const swapArrayElements = (
   arr: MapAttribute[],
   index1: number,
   index2: number
@@ -52,59 +113,105 @@ const swapArrayElements = <T>(
   });
 };
 
+/**
+ * 丸い岩 (CIRCLE_LOCK) を適切な位置に移動させるために、空きスペースや四角い岩の配置に応じて配列を更新します。
+ * @param {MapAttribute[]} attributes - マップ内の各要素の配列。
+ * @param {number} [spaceIndex=NaN] - 現在の空きスペースのインデックス。
+ * @param {number} [currentIndex=0] - 現在のインデックス。
+ * @returns {MapAttribute[]} - 更新された配列。
+ */
 const relocateCircleLocks = (
   attributes: MapAttribute[],
-  index: number,
-  spaceIndex: number
+  spaceIndex = NaN,
+  currentIndex = 0
 ): MapAttribute[] => {
-  if (attributes.length === index) {
+  if (attributes.length === currentIndex) {
     return attributes;
   }
 
-  if (attributes[index].element === MapElements[EMPTY_SPACE]) {
+  const currentAttr = attributes[currentIndex];
+  const nextIndex = currentIndex + 1;
+
+  if (currentAttr.element === MapElements[EMPTY_SPACE]) {
     return relocateCircleLocks(
       attributes,
-      index + 1,
-      isNaN(spaceIndex) ? index : spaceIndex
+      isNaN(spaceIndex) ? currentIndex : spaceIndex,
+      nextIndex
     );
   }
 
-  if (
-    !isNaN(spaceIndex) &&
-    attributes[index].element === MapElements[CIRCLE_LOCK]
-  ) {
+  if (!isNaN(spaceIndex) && currentAttr.element === MapElements[CIRCLE_LOCK]) {
     return relocateCircleLocks(
-      swapArrayElements(attributes, index, spaceIndex),
-      spaceIndex,
-      NaN
+      swapArrayElements(attributes, currentIndex, spaceIndex),
+      NaN,
+      spaceIndex
     );
   }
 
-  if (attributes[index].element === MapElements[SQUARE_LOCK]) {
-    return relocateCircleLocks(attributes, index + 1, NaN);
+  if (currentAttr.element === MapElements[SQUARE_LOCK]) {
+    return relocateCircleLocks(attributes, NaN, nextIndex);
   }
 
-  return relocateCircleLocks(attributes, index + 1, spaceIndex);
+  return relocateCircleLocks(attributes, spaceIndex, nextIndex);
 };
 
-const moveElementNorth = (attributes: MapAttribute[][]): MapAttribute[][] =>
-  transpose(
-    transpose(attributes).map((rows) => relocateCircleLocks(rows, 0, NaN))
-  );
+/**
+ * グリッド内の要素を移動させる関数を作成します。
+ * @returns {Object} - 方向ごとの移動関数を持つオブジェクト。
+ */
+const createGridMover = () => {
+  const processRows = (grid: MapAttribute[][]) =>
+    grid.map((row) => relocateCircleLocks(row));
 
-const moveElementSouth = (attributes: MapAttribute[][]): MapAttribute[][] =>
-  transpose(
-    transpose(attributes).map((rows) =>
-      relocateCircleLocks(rows.reverse(), 0, NaN).reverse()
-    )
-  );
+  const moveNorth = (grid: MapAttribute[][]) =>
+    transpose(processRows(transpose(grid)));
 
-const moveElementWest = (attributes: MapAttribute[][]): MapAttribute[][] =>
-  attributes.map((row) => relocateCircleLocks(row, 0, NaN));
+  const moveSouth = (grid: MapAttribute[][]) =>
+    transpose(
+      transpose(grid).map((rows) =>
+        relocateCircleLocks(rows.reverse()).reverse()
+      )
+    );
 
-const moveElementEast = (attributes: MapAttribute[][]): MapAttribute[][] =>
-  attributes.map((row) => relocateCircleLocks(row.reverse(), 0, NaN).reverse());
+  const moveWest = (grid: MapAttribute[][]) => processRows(grid);
 
+  const moveEast = (grid: MapAttribute[][]) =>
+    processRows(grid.map((row) => row.reverse())).map((row) => row.reverse());
+
+  return {
+    moveNorth,
+    moveSouth,
+    moveWest,
+    moveEast,
+  };
+};
+
+const gridMover = createGridMover();
+
+/**
+ * グリッド内の要素を指定された方向に移動させます。
+ * @param {MapAttribute[][]} grid - グリッド内の要素の配列。
+ * @param {Direction} direction - 移動する方向。
+ * @returns {MapAttribute[][]} - 移動後のグリッド。
+ */
+const moveElements = (grid: MapAttribute[][], direction: Direction) => {
+  const operations = {
+    North: gridMover.moveNorth,
+    South: gridMover.moveSouth,
+    West: gridMover.moveWest,
+    East: gridMover.moveEast,
+  };
+  return operations[direction](grid);
+};
+
+/**
+ * 文字と座標から新しい MapAttribute オブジェクトを作成します。
+ * @param {string} char - 要素を表す文字。
+ * @param {number} x - 要素のx座標。
+ * @param {number} y - 要素のy座標。
+ * @returns {MapAttribute} - 新しく作成された MapAttribute オブジェクト。
+ * @throws {Error} - 文字が MapElementCharacters に該当しない場合にエラーをスローします。
+ */
 const createElementObject = (
   char: string,
   x: number,
@@ -116,11 +223,21 @@ const createElementObject = (
   return { x, y, element: MapElements[char] };
 };
 
+/**
+ * 文字列からマップを解析し、MapAttribute オブジェクトの2次元配列を作成します。
+ * @param {string} map - 解析するマップの文字列。
+ * @returns {MapAttribute[][]} - 解析された MapAttribute オブジェクトの2次元配列。
+ */
 const parseMap = (map: string) =>
   map.split("\n").map((row, y) => {
     return row.split("").map((char, x) => createElementObject(char, x, y));
   });
 
+/**
+ * 現在のマップ内の岩の総重量を計算します。
+ * @param {MapAttribute[][]} mapAttributes - マップ内の要素の2次元配列。
+ * @returns {number} - 岩の総重量。
+ */
 const calculateTotalWeight = (mapAttributes: MapAttribute[][]): number => {
   return mapAttributes.reduce((totalWeight, row) => {
     return (
@@ -160,10 +277,8 @@ export const analyzeMap: AnalyzedMapType = (map) => {
 
   const extractMapAttributes = () => currentMap;
 
-  const getCurrentState = () => show();
-
   const checkCycle = () => {
-    const currentState = getCurrentState();
+    const currentState = show();
     if (seenStates.has(currentState)) {
       cycleStartIndex = seenStates.get(currentState)!; // 最初にこの状態が現れた回数
       cycleLength = iteration - cycleStartIndex; // 現在の回数との差が周期の長さ
@@ -175,21 +290,7 @@ export const analyzeMap: AnalyzedMapType = (map) => {
   };
 
   const liver = (direction: Direction) => {
-    switch (direction) {
-      case "North":
-        currentMap = moveElementNorth(currentMap);
-        break;
-      case "South":
-        currentMap = moveElementSouth(currentMap);
-        break;
-      case "West":
-        currentMap = moveElementWest(currentMap);
-        break;
-      case "East":
-        currentMap = moveElementEast(currentMap);
-        break;
-      default:
-    }
+    currentMap = moveElements(currentMap, direction);
   };
 
   const performCycle = () => {
@@ -199,13 +300,10 @@ export const analyzeMap: AnalyzedMapType = (map) => {
     checkCycle(); // 毎回状態をチェックして周期性を確認
   };
 
-  const calculateResultAfterCycles = () => {
+  const calculateResultAfterCycles = (cycleNumber: number) => {
     const startIndex = cycleStartIndex ?? 0;
     const length = cycleLength ?? 0;
-    const index = startIndex + ((1000000000 - startIndex) % length);
-    // const index = 6;
-
-    // console.log(index, length, startIndex, iteration, seenStates.entries());
+    const index = startIndex + ((cycleNumber - startIndex) % length);
 
     // 周期開始前の状態に戻す
     currentMap = parseMap(
