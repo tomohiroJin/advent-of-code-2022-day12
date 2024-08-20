@@ -53,11 +53,11 @@ O#.`);
 
   describe("レバーを倒すと倒した方向に岩が移動する", () => {
     it("北にレバーを倒すと丸い岩は空きスペースに移動する", () => {
-      const { show, liver } = analyzeMap(`...
+      const { show, operateLever } = analyzeMap(`...
 O..
 OO.
 .OO`);
-      liver("North");
+      operateLever("North");
       expect(show()).toBe(`OOO
 OO.
 ...
@@ -65,11 +65,11 @@ OO.
     });
 
     it("北にLiverを倒すと四角い岩までの空きスペースに移動する", () => {
-      const { show, liver } = analyzeMap(`#..
+      const { show, operateLever } = analyzeMap(`#..
 O.#
 OO.
 ..O`);
-      liver("North");
+      operateLever("North");
       expect(show()).toBe(`#O.
 O.#
 O.O
@@ -85,7 +85,11 @@ OO.
     });
 
     it("北に移動したあとに岩の重さを算出できる", () => {
-      const { show, calculateTotalWeight, liver } = analyzeMap(reflectionMap);
+      const {
+        show,
+        calculateTotalWeight,
+        operateLever: liver,
+      } = analyzeMap(reflectionMap);
 
       liver("North");
 
@@ -103,11 +107,11 @@ O..#.OO...
     });
 
     it("南にレバーを倒すと丸い岩は空きスペースに移動する", () => {
-      const { show, liver } = analyzeMap(`...
+      const { show, operateLever } = analyzeMap(`...
 O..
 OO.
 .OO`);
-      liver("South");
+      operateLever("South");
       expect(show()).toBe(`...
 ...
 OO.
@@ -115,11 +119,11 @@ OOO`);
     });
 
     it("西にレバーを倒すと丸い岩は空きスペースに移動する", () => {
-      const { show, liver } = analyzeMap(`..O
+      const { show, operateLever } = analyzeMap(`..O
 ..O
 .O.
 OO.`);
-      liver("West");
+      operateLever("West");
       expect(show()).toBe(`O..
 O..
 O..
@@ -127,11 +131,11 @@ OO.`);
     });
 
     it("東にレバーを倒すと丸い岩は空きスペースに移動する", () => {
-      const { show, liver } = analyzeMap(`O..
+      const { show, operateLever } = analyzeMap(`O..
 O..
 .OO
 .O.`);
-      liver("East");
+      operateLever("East");
       expect(show()).toBe(`..O
 ..O
 .OO
@@ -156,8 +160,7 @@ O..
 
   describe("周期の取得", () => {
     it("一定の回数を回転させたときに同じ形ができた場合に周期性ができたと判断できる", () => {
-      const { performCycle, cycleStartIndex, liver, cycleLength } =
-        analyzeMap(`.O
+      const { performCycle, cycleStartIndex, cycleLength } = analyzeMap(`.O
 ..`);
 
       expect(cycleStartIndex()).toBeNull();

@@ -51,6 +51,11 @@ type MapAttribute = {
 type Direction = "North" | "South" | "East" | "West";
 
 /**
+ * 方向に動かす処理型
+ */
+type MoveDirection = (grid: MapAttribute[][]) => MapAttribute[][];
+
+/**
  * マップを解析する関数の型
  * @param {string} map - マップの文字列
  * @returns {Object} - 解析されたマップに関する操作を提供するオブジェクト
@@ -66,7 +71,7 @@ type Direction = "North" | "South" | "East" | "West";
 type AnalyzedMapType = (map: string) => {
   show: () => string;
   analyzeMapAttributes: () => MapAttribute[][];
-  liver: (direction: Direction) => void;
+  operateLever: (direction: Direction) => void;
   calculateTotalWeight: () => number;
   performCycle: () => void;
   cycleStartIndex: () => number | null;
@@ -79,18 +84,16 @@ type AnalyzedMapType = (map: string) => {
  * @param {string} char - 判定する文字。
  * @returns {boolean} - 文字が MapElementCharacters 型である場合に true を返します。
  */
-const isMapElementCharacters = (char: string): char is MapElementCharacters => {
-  return char in MapElements;
-};
+const isMapElementCharacters = (char: string): char is MapElementCharacters =>
+  char in MapElements;
 
 /**
  * 与えられた2次元配列の行と列を転置します。
  * @param {T[][]} matrix - 転置する2次元配列。
  * @returns {T[][]} - 転置された2次元配列。
  */
-const transpose = <T>(matrix: T[][]): T[][] => {
-  return matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
-};
+const transpose = <T>(matrix: T[][]): T[][] =>
+  matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
 
 /**
  * 指定された2つのインデックス位置の要素をスワップした新しい配列を返します。
@@ -157,36 +160,34 @@ const relocateCircleLocks = (
 
 /**
  * グリッド内の要素を移動させる関数を作成します。
- * @returns {Object} - 方向ごとの移動関数を持つオブジェクト。
+ * @returns - 方向ごとの移動関数を持つオブジェクト。
  */
-const createGridMover = () => {
-  const processRows = (grid: MapAttribute[][]) =>
+const createGridMover = (): Record<Direction, MoveDirection> => {
+  const processRows: MoveDirection = (grid) =>
     grid.map((row) => relocateCircleLocks(row));
 
-  const moveNorth = (grid: MapAttribute[][]) =>
+  const moveNorth: MoveDirection = (grid) =>
     transpose(processRows(transpose(grid)));
 
-  const moveSouth = (grid: MapAttribute[][]) =>
+  const moveSouth: MoveDirection = (grid) =>
     transpose(
       transpose(grid).map((rows) =>
         relocateCircleLocks(rows.reverse()).reverse()
       )
     );
 
-  const moveWest = (grid: MapAttribute[][]) => processRows(grid);
+  const moveWest: MoveDirection = (grid) => processRows(grid);
 
-  const moveEast = (grid: MapAttribute[][]) =>
+  const moveEast: MoveDirection = (grid) =>
     processRows(grid.map((row) => row.reverse())).map((row) => row.reverse());
 
   return {
-    moveNorth,
-    moveSouth,
-    moveWest,
-    moveEast,
+    North: moveNorth,
+    South: moveSouth,
+    West: moveWest,
+    East: moveEast,
   };
 };
-
-const gridMover = createGridMover();
 
 /**
  * グリッド内の要素を指定された方向に移動させます。
@@ -195,13 +196,8 @@ const gridMover = createGridMover();
  * @returns {MapAttribute[][]} - 移動後のグリッド。
  */
 const moveElements = (grid: MapAttribute[][], direction: Direction) => {
-  const operations = {
-    North: gridMover.moveNorth,
-    South: gridMover.moveSouth,
-    West: gridMover.moveWest,
-    East: gridMover.moveEast,
-  };
-  return operations[direction](grid);
+  const gridMover = createGridMover();
+  return gridMover[direction](grid);
 };
 
 /**
@@ -228,10 +224,12 @@ const createElementObject = (
  * @param {string} map - 解析するマップの文字列。
  * @returns {MapAttribute[][]} - 解析された MapAttribute オブジェクトの2次元配列。
  */
-const parseMap = (map: string) =>
-  map.split("\n").map((row, y) => {
-    return row.split("").map((char, x) => createElementObject(char, x, y));
-  });
+const parseMap = (map: string): MapAttribute[][] =>
+  map
+    .split("\n")
+    .map((row, y) =>
+      row.split("").map((char, x) => createElementObject(char, x, y))
+    );
 
 /**
  * 現在のマップ内の岩の総重量を計算します。
@@ -289,13 +287,13 @@ export const analyzeMap: AnalyzedMapType = (map) => {
     return false;
   };
 
-  const liver = (direction: Direction) => {
+  const operateLever = (direction: Direction) => {
     currentMap = moveElements(currentMap, direction);
   };
 
   const performCycle = () => {
     const directions: Direction[] = ["North", "West", "South", "East"];
-    directions.forEach((direction: Direction) => liver(direction));
+    directions.forEach((direction: Direction) => operateLever(direction));
     iteration++;
     checkCycle(); // 毎回状態をチェックして周期性を確認
   };
@@ -316,7 +314,7 @@ export const analyzeMap: AnalyzedMapType = (map) => {
   return {
     show,
     analyzeMapAttributes: extractMapAttributes,
-    liver,
+    operateLever,
     calculateTotalWeight: () => calculateTotalWeight(currentMap),
     performCycle,
     cycleStartIndex: () => cycleStartIndex,
