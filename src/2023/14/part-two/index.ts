@@ -57,50 +57,54 @@ type MoveDirection = (grid: MapAttribute[][]) => MapAttribute[][];
 
 /**
  * マップを解析する関数の型
- * @param {string} map - マップの文字列
- * @returns {Object} - 解析されたマップに関する操作を提供するオブジェクト
- * @property {Function} show - 現在のマップを文字列として表示する関数
- * @property {Function} analyzeMapAttributes - マップの属性を解析して返す関数
- * @property {Function} liver - 指定された方向に岩を移動させる関数
- * @property {Function} calculateTotalWeight - 現在のマップの岩の総重量を計算する関数
- * @property {Function} performCycle - マップ内の岩を回転させる1サイクルを実行する関数
- * @property {Function} cycleStartIndex - サイクルの開始インデックスを取得する関数
- * @property {Function} cycleLength - サイクルの長さを取得する関数
- * @property {Function} calculateResultAfterCycles - 指定されたサイクル数後の岩の総重量を計算する関数
+ * @param map - マップの文字列
+ * @returns - 解析されたマップに関する操作を提供するオブジェクト
+ * @property show - 現在のマップを文字列として表示する関数
+ * @property analyzeMapAttributes - マップの属性を解析して返す関数
+ * @property operateLever - 指定された方向に岩を移動させる関数
+ * @property calculateTotalWeight - 現在のマップの岩の総重量を計算する関数
+ * @property performCycle - マップ内の岩を回転させる1サイクルを実行する関数
+ * @property cycleStartIndex - サイクルの開始インデックスを取得する関数
+ * @property cycleLength - サイクルの長さを取得する関数
+ * @property calculateResultAfterCycles - 指定されたサイクル数後の岩の総重量を計算する関数
  */
 type AnalyzedMapType = (map: string) => {
-  show: () => string;
+  show: (map: MapAttribute[][]) => string;
   analyzeMapAttributes: () => MapAttribute[][];
-  operateLever: (direction: Direction) => void;
-  calculateTotalWeight: () => number;
+  operateLever: (
+    direction: Direction,
+    map: MapAttribute[][]
+  ) => MapAttribute[][];
+  calculateTotalWeight: (map: MapAttribute[][]) => number;
   performCycle: () => void;
   cycleStartIndex: () => number | null;
   cycleLength: () => number | null;
   calculateResultAfterCycles: (totalCycles: number) => number;
+  map: MapAttribute[][];
 };
 
 /**
  * 指定された文字が MapElementCharacters 型かどうかを判定します。
- * @param {string} char - 判定する文字。
- * @returns {boolean} - 文字が MapElementCharacters 型である場合に true を返します。
+ * @param char 判定する文字。
+ * @returns 文字が MapElementCharacters 型である場合に true を返します。
  */
 const isMapElementCharacters = (char: string): char is MapElementCharacters =>
   char in MapElements;
 
 /**
  * 与えられた2次元配列の行と列を転置します。
- * @param {T[][]} matrix - 転置する2次元配列。
- * @returns {T[][]} - 転置された2次元配列。
+ * @param matrix - 転置する2次元配列。
+ * @returns 転置された2次元配列。
  */
 const transpose = <T>(matrix: T[][]): T[][] =>
   matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
 
 /**
  * 指定された2つのインデックス位置の要素をスワップした新しい配列を返します。
- * @param {MapAttribute[]} arr - 要素をスワップする配列。
- * @param {number} index1 - スワップする最初のインデックス。
- * @param {number} index2 - スワップする2つ目のインデックス。
- * @returns {MapAttribute[]} - 指定された要素がスワップされた新しい配列。
+ * @param arr - 要素をスワップする配列。
+ * @param index1 - スワップする最初のインデックス。
+ * @param index2 - スワップする2つ目のインデックス。
+ * @returns 指定された要素がスワップされた新しい配列。
  */
 const swapArrayElements = (
   arr: MapAttribute[],
@@ -118,49 +122,50 @@ const swapArrayElements = (
 
 /**
  * 丸い岩 (CIRCLE_LOCK) を適切な位置に移動させるために、空きスペースや四角い岩の配置に応じて配列を更新します。
- * @param {MapAttribute[]} attributes - マップ内の各要素の配列。
- * @param {number} [spaceIndex=NaN] - 現在の空きスペースのインデックス。
- * @param {number} [currentIndex=0] - 現在のインデックス。
- * @returns {MapAttribute[]} - 更新された配列。
+ * @param attributes - マップ内の各要素の配列。
+ * @param spaceIndex=NaN - 現在の空きスペースのインデックス。
+ * @param currentIndex=0 - 現在のインデックス。
+ * @returns 更新された配列。
  */
 const relocateCircleLocks = (
   attributes: MapAttribute[],
   spaceIndex = NaN,
   currentIndex = 0
 ): MapAttribute[] => {
-  if (attributes.length === currentIndex) {
+  if (currentIndex >= attributes.length) {
     return attributes;
   }
 
   const currentAttr = attributes[currentIndex];
-  const nextIndex = currentIndex + 1;
 
-  if (currentAttr.element === MapElements[EMPTY_SPACE]) {
-    return relocateCircleLocks(
-      attributes,
-      isNaN(spaceIndex) ? currentIndex : spaceIndex,
-      nextIndex
-    );
+  switch (currentAttr.element) {
+    case MapElements[EMPTY_SPACE]:
+      return relocateCircleLocks(
+        attributes,
+        isNaN(spaceIndex) ? currentIndex : spaceIndex,
+        currentIndex + 1
+      );
+
+    case MapElements[CIRCLE_LOCK]:
+      return !isNaN(spaceIndex)
+        ? relocateCircleLocks(
+            swapArrayElements(attributes, currentIndex, spaceIndex),
+            NaN,
+            spaceIndex
+          )
+        : relocateCircleLocks(attributes, spaceIndex, currentIndex + 1);
+
+    case MapElements[SQUARE_LOCK]:
+      return relocateCircleLocks(attributes, NaN, currentIndex + 1);
+
+    default:
+      return relocateCircleLocks(attributes, spaceIndex, currentIndex + 1);
   }
-
-  if (!isNaN(spaceIndex) && currentAttr.element === MapElements[CIRCLE_LOCK]) {
-    return relocateCircleLocks(
-      swapArrayElements(attributes, currentIndex, spaceIndex),
-      NaN,
-      spaceIndex
-    );
-  }
-
-  if (currentAttr.element === MapElements[SQUARE_LOCK]) {
-    return relocateCircleLocks(attributes, NaN, nextIndex);
-  }
-
-  return relocateCircleLocks(attributes, spaceIndex, nextIndex);
 };
 
 /**
  * グリッド内の要素を移動させる関数を作成します。
- * @returns - 方向ごとの移動関数を持つオブジェクト。
+ * @returns 方向ごとの移動関数を持つオブジェクト。
  */
 const createGridMover = (): Record<Direction, MoveDirection> => {
   const processRows: MoveDirection = (grid) =>
@@ -191,9 +196,9 @@ const createGridMover = (): Record<Direction, MoveDirection> => {
 
 /**
  * グリッド内の要素を指定された方向に移動させます。
- * @param {MapAttribute[][]} grid - グリッド内の要素の配列。
- * @param {Direction} direction - 移動する方向。
- * @returns {MapAttribute[][]} - 移動後のグリッド。
+ * @param grid - グリッド内の要素の配列。
+ * @param direction - 移動する方向。
+ * @returns 移動後のグリッド。
  */
 const moveElements = (grid: MapAttribute[][], direction: Direction) => {
   const gridMover = createGridMover();
@@ -202,11 +207,11 @@ const moveElements = (grid: MapAttribute[][], direction: Direction) => {
 
 /**
  * 文字と座標から新しい MapAttribute オブジェクトを作成します。
- * @param {string} char - 要素を表す文字。
- * @param {number} x - 要素のx座標。
- * @param {number} y - 要素のy座標。
- * @returns {MapAttribute} - 新しく作成された MapAttribute オブジェクト。
- * @throws {Error} - 文字が MapElementCharacters に該当しない場合にエラーをスローします。
+ * @param char - 要素を表す文字。
+ * @param x - 要素のx座標。
+ * @param y - 要素のy座標。
+ * @returns 新しく作成された MapAttribute オブジェクト。
+ * @throws 文字が MapElementCharacters に該当しない場合にエラーをスローします。
  */
 const createElementObject = (
   char: string,
@@ -221,8 +226,8 @@ const createElementObject = (
 
 /**
  * 文字列からマップを解析し、MapAttribute オブジェクトの2次元配列を作成します。
- * @param {string} map - 解析するマップの文字列。
- * @returns {MapAttribute[][]} - 解析された MapAttribute オブジェクトの2次元配列。
+ * @param map - 解析するマップの文字列。
+ * @returns 解析された MapAttribute オブジェクトの2次元配列。
  */
 const parseMap = (map: string): MapAttribute[][] =>
   map
@@ -233,8 +238,8 @@ const parseMap = (map: string): MapAttribute[][] =>
 
 /**
  * 現在のマップ内の岩の総重量を計算します。
- * @param {MapAttribute[][]} mapAttributes - マップ内の要素の2次元配列。
- * @returns {number} - 岩の総重量。
+ * @param mapAttributes - マップ内の要素の2次元配列。
+ * @returns 岩の総重量。
  */
 const calculateTotalWeight = (mapAttributes: MapAttribute[][]): number => {
   return mapAttributes.reduce((totalWeight, row) => {
@@ -251,32 +256,31 @@ const calculateTotalWeight = (mapAttributes: MapAttribute[][]): number => {
   }, 0);
 };
 
-export const analyzeMap: AnalyzedMapType = (map) => {
-  let currentMap = parseMap(map);
+const show = (map: MapAttribute[][]) =>
+  map
+    .map((row) =>
+      row
+        .map((attr) => {
+          for (const [key, value] of Object.entries(MapElements)) {
+            if (value === attr.element) return key;
+          }
+          return " ";
+        })
+        .join("")
+    )
+    .join("\n");
+
+export const analyzeMap: AnalyzedMapType = (inputMap) => {
+  let currentMap = parseMap(inputMap);
   let cycleStartIndex: number | null = null;
   let cycleLength: number | null = null;
   let iteration = 0;
   const seenStates = new Map<string, number>(); // 過去の状態とそのサイクル番号を保存
 
-  const show = () => {
-    return currentMap
-      .map((row) =>
-        row
-          .map((attr) => {
-            for (const [key, value] of Object.entries(MapElements)) {
-              if (value === attr.element) return key;
-            }
-            return " ";
-          })
-          .join("")
-      )
-      .join("\n");
-  };
-
-  const extractMapAttributes = () => currentMap;
+  const analyzeMapAttributes = (map: string = inputMap) => currentMap;
 
   const checkCycle = () => {
-    const currentState = show();
+    const currentState = show(currentMap);
     if (seenStates.has(currentState)) {
       cycleStartIndex = seenStates.get(currentState)!; // 最初にこの状態が現れた回数
       cycleLength = iteration - cycleStartIndex; // 現在の回数との差が周期の長さ
@@ -287,13 +291,15 @@ export const analyzeMap: AnalyzedMapType = (map) => {
     return false;
   };
 
-  const operateLever = (direction: Direction) => {
-    currentMap = moveElements(currentMap, direction);
-  };
+  const operateLever = (direction: Direction, map: MapAttribute[][]) =>
+    moveElements(map, direction);
 
   const performCycle = () => {
     const directions: Direction[] = ["North", "West", "South", "East"];
-    directions.forEach((direction: Direction) => operateLever(direction));
+    directions.forEach(
+      (direction: Direction) =>
+        (currentMap = moveElements(currentMap, direction))
+    );
     iteration++;
     checkCycle(); // 毎回状態をチェックして周期性を確認
   };
@@ -313,12 +319,13 @@ export const analyzeMap: AnalyzedMapType = (map) => {
 
   return {
     show,
-    analyzeMapAttributes: extractMapAttributes,
+    analyzeMapAttributes,
     operateLever,
-    calculateTotalWeight: () => calculateTotalWeight(currentMap),
+    calculateTotalWeight: (map: MapAttribute[][]) => calculateTotalWeight(map),
     performCycle,
     cycleStartIndex: () => cycleStartIndex,
     cycleLength: () => cycleLength,
     calculateResultAfterCycles,
+    map: currentMap,
   };
 };

@@ -14,8 +14,8 @@ O.#..O.#.#
 describe("Day 14: Parabolic Reflector Dish", () => {
   describe("show", () => {
     it("マップを解析して現在の情報を返す取り込む", () => {
-      const { show } = analyzeMap(reflectionMap);
-      expect(show()).toBe(`O....#....
+      const { show, map } = analyzeMap(reflectionMap);
+      expect(show(map)).toBe(`O....#....
 O.OO#....#
 .....##...
 OO.#O....O
@@ -53,47 +53,44 @@ O#.`);
 
   describe("レバーを倒すと倒した方向に岩が移動する", () => {
     it("北にレバーを倒すと丸い岩は空きスペースに移動する", () => {
-      const { show, operateLever } = analyzeMap(`...
+      const { show, operateLever, map } = analyzeMap(`...
 O..
 OO.
 .OO`);
-      operateLever("North");
-      expect(show()).toBe(`OOO
+      const actual = operateLever("North", map);
+      expect(show(actual)).toBe(`OOO
 OO.
 ...
 ...`);
     });
 
     it("北にLiverを倒すと四角い岩までの空きスペースに移動する", () => {
-      const { show, operateLever } = analyzeMap(`#..
+      const { show, operateLever, map } = analyzeMap(`#..
 O.#
 OO.
 ..O`);
-      operateLever("North");
-      expect(show()).toBe(`#O.
+      const actual = operateLever("North", map);
+      expect(show(actual)).toBe(`#O.
 O.#
 O.O
 ...`);
     });
 
     it("岩の位置から南の端までの行数で岩の重さを算出できる", () => {
-      const { calculateTotalWeight } = analyzeMap(`#..
+      const { calculateTotalWeight, map } = analyzeMap(`#..
 O.#
 OO.
 ..O`);
-      expect(calculateTotalWeight()).toBe(8);
+      expect(calculateTotalWeight(map)).toBe(8);
     });
 
     it("北に移動したあとに岩の重さを算出できる", () => {
-      const {
-        show,
-        calculateTotalWeight,
-        operateLever: liver,
-      } = analyzeMap(reflectionMap);
+      const { show, calculateTotalWeight, operateLever, map } =
+        analyzeMap(reflectionMap);
 
-      liver("North");
+      const actual = operateLever("North", map);
 
-      expect(show()).toBe(`OOOO.#.O..
+      expect(show(actual)).toBe(`OOOO.#.O..
 OO..#....#
 OO..O##..O
 O..#.OO...
@@ -103,49 +100,50 @@ O..#.OO...
 ..O.......
 #....###..
 #....#....`);
-      expect(calculateTotalWeight()).toBe(136);
+      expect(calculateTotalWeight(actual)).toBe(136);
     });
 
     it("南にレバーを倒すと丸い岩は空きスペースに移動する", () => {
-      const { show, operateLever } = analyzeMap(`...
+      const { show, operateLever, map } = analyzeMap(`...
 O..
 OO.
 .OO`);
-      operateLever("South");
-      expect(show()).toBe(`...
+      const actual = operateLever("South", map);
+      expect(show(actual)).toBe(`...
 ...
 OO.
 OOO`);
     });
 
     it("西にレバーを倒すと丸い岩は空きスペースに移動する", () => {
-      const { show, operateLever } = analyzeMap(`..O
+      const { show, operateLever, map } = analyzeMap(`..O
 ..O
 .O.
 OO.`);
-      operateLever("West");
-      expect(show()).toBe(`O..
+      const actual = operateLever("West", map);
+      expect(show(actual)).toBe(`O..
 O..
 O..
 OO.`);
     });
 
     it("東にレバーを倒すと丸い岩は空きスペースに移動する", () => {
-      const { show, operateLever } = analyzeMap(`O..
+      const { show, operateLever, map } = analyzeMap(`O..
 O..
 .OO
 .O.`);
-      operateLever("East");
-      expect(show()).toBe(`..O
+      const actual = operateLever("East", map);
+      expect(show(actual)).toBe(`..O
 ..O
 .OO
 ..O`);
     });
 
     it("北、西、南、東に回転した結果を取得できる", () => {
-      const { show, performCycle } = analyzeMap(reflectionMap);
+      const { show, performCycle, analyzeMapAttributes } =
+        analyzeMap(reflectionMap);
       performCycle();
-      expect(show()).toBe(`.....#....
+      expect(show(analyzeMapAttributes())).toBe(`.....#....
 ....#...O#
 ...OO##...
 .OO#......
