@@ -56,6 +56,11 @@ type Direction = "North" | "South" | "East" | "West";
 type MoveDirection = (grid: MapAttribute[][]) => MapAttribute[][];
 
 /**
+ * サイクルの発生個所
+ */
+type CycleIndexes = { cycleStartIndex: number; cycleLength: number } | null;
+
+/**
  * マップを解析する関数の型
  * @param map - マップの文字列
  * @returns - 解析されたマップに関する操作を提供するオブジェクト
@@ -70,17 +75,27 @@ type MoveDirection = (grid: MapAttribute[][]) => MapAttribute[][];
  */
 type AnalyzedMapType = (map: string) => {
   show: (map: MapAttribute[][]) => string;
-  analyzeMapAttributes: () => MapAttribute[][];
+  analyzeMapAttributes: (map: string) => MapAttribute[][];
   operateLever: (
     direction: Direction,
     map: MapAttribute[][]
   ) => MapAttribute[][];
   calculateTotalWeight: (map: MapAttribute[][]) => number;
-  performCycle: () => void;
-  cycleStartIndex: () => number | null;
-  cycleLength: () => number | null;
-  calculateResultAfterCycles: (totalCycles: number) => number;
-  map: MapAttribute[][];
+  performCycle: (
+    seenStates: Map<string, number>,
+    iteration: number,
+    map: MapAttribute[][]
+  ) => [
+    seenStates: Map<string, number>,
+    number,
+    CycleIndexes,
+    MapAttribute[][]
+  ];
+  calculateResultAfterCycles: (
+    seenStates: Map<string, number>,
+    totalCycles: number,
+    cycleIndexes: CycleIndexes
+  ) => number;
 };
 
 /**
@@ -196,11 +211,11 @@ const createGridMover = (): Record<Direction, MoveDirection> => {
 
 /**
  * グリッド内の要素を指定された方向に移動させます。
- * @param grid - グリッド内の要素の配列。
  * @param direction - 移動する方向。
+ * @param grid - グリッド内の要素の配列。
  * @returns 移動後のグリッド。
  */
-const moveElements = (grid: MapAttribute[][], direction: Direction) => {
+const moveElements = (direction: Direction, grid: MapAttribute[][]) => {
   const gridMover = createGridMover();
   return gridMover[direction](grid);
 };
@@ -271,61 +286,71 @@ const show = (map: MapAttribute[][]) =>
     .join("\n");
 
 export const analyzeMap: AnalyzedMapType = (inputMap) => {
-  let currentMap = parseMap(inputMap);
-  let cycleStartIndex: number | null = null;
-  let cycleLength: number | null = null;
-  let iteration = 0;
-  const seenStates = new Map<string, number>(); // 過去の状態とそのサイクル番号を保存
+  const analyzeMapAttributes = (map: string) => parseMap(map);
 
-  const analyzeMapAttributes = (map: string = inputMap) => currentMap;
-
-  const checkCycle = () => {
+  const checkCycle = (
+    currentMap: MapAttribute[][],
+    seenStates: Map<string, number>,
+    iteration: number
+  ) => {
     const currentState = show(currentMap);
     if (seenStates.has(currentState)) {
-      cycleStartIndex = seenStates.get(currentState)!; // 最初にこの状態が現れた回数
-      cycleLength = iteration - cycleStartIndex; // 現在の回数との差が周期の長さ
+      const cycleStartIndex = seenStates.get(currentState)!; // 最初にこの状態が現れた回数
+      const cycleLength = iteration - cycleStartIndex; // 現在の回数との差が周期の長さ
 
-      return true; // 周期性が確認できた場合
+      return { cycleStartIndex, cycleLength };
     }
     seenStates.set(currentState, iteration);
-    return false;
+    return null;
   };
 
-  const operateLever = (direction: Direction, map: MapAttribute[][]) =>
-    moveElements(map, direction);
-
-  const performCycle = () => {
+  const performCycle = (
+    seenStates: Map<string, number>,
+    iteration: number,
+    map: MapAttribute[][]
+  ): [
+    seenStates: Map<string, number>,
+    number,
+    CycleIndexes,
+    map: MapAttribute[][]
+  ] => {
     const directions: Direction[] = ["North", "West", "South", "East"];
-    directions.forEach(
-      (direction: Direction) =>
-        (currentMap = moveElements(currentMap, direction))
+    const currentMap = directions.reduce(
+      (prev, direction: Direction) => moveElements(direction, prev),
+      map
     );
-    iteration++;
-    checkCycle(); // 毎回状態をチェックして周期性を確認
+    iteration += 1;
+    const cycleIndexes = checkCycle(currentMap, seenStates, iteration); // 毎回状態をチェックして周期性を確認
+    return [seenStates, iteration, cycleIndexes, currentMap];
   };
 
-  const calculateResultAfterCycles = (cycleNumber: number) => {
-    const startIndex = cycleStartIndex ?? 0;
-    const length = cycleLength ?? 0;
+  const calculateResultAfterCycles = (
+    seenStates: Map<string, number>,
+    cycleNumber: number,
+    cycleIndexes: CycleIndexes
+  ) => {
+    if (!cycleIndexes) {
+      return -1;
+    }
+
+    const startIndex = cycleIndexes.cycleStartIndex ?? 0;
+    const length = cycleIndexes.cycleLength ?? 0;
     const index = startIndex + ((cycleNumber - startIndex) % length);
 
     // 周期開始前の状態に戻す
-    currentMap = parseMap(
+    const map = parseMap(
       Array.from(seenStates.entries()).find(([_, cycle]) => cycle === index)![0]
     );
 
-    return calculateTotalWeight(currentMap); // 最終状態の重さを計算
+    return calculateTotalWeight(map); // 最終状態の重さを計算
   };
 
   return {
     show,
     analyzeMapAttributes,
-    operateLever,
+    operateLever: moveElements,
     calculateTotalWeight: (map: MapAttribute[][]) => calculateTotalWeight(map),
     performCycle,
-    cycleStartIndex: () => cycleStartIndex,
-    cycleLength: () => cycleLength,
     calculateResultAfterCycles,
-    map: currentMap,
   };
 };
