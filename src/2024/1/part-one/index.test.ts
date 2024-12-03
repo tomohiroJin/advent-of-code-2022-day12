@@ -1,9 +1,9 @@
 import {
-  differenceNumber,
-  differenceTotal,
-  readLeftList,
-  readRightList,
-  totalDifferenceList,
+  calculateDifferenceList,
+  sumOfDifferences,
+  parseLeftColumn,
+  parseRightColumn,
+  calculateTotalDifference,
 } from ".";
 
 const sampleList = `3   4
@@ -15,22 +15,17 @@ const sampleList = `3   4
 
 describe("リストの調整処理", () => {
   test("リストの左を読み込む", () => {
-    const actual = readLeftList(sampleList);
+    const actual = parseLeftColumn(sampleList);
     expect(actual).toEqual([3, 4, 2, 1, 3, 3]);
   });
 
   test("リストの右を読み込む", () => {
-    const actual = readRightList(sampleList);
+    const actual = parseRightColumn(sampleList);
     expect(actual).toEqual([4, 3, 5, 3, 9, 3]);
   });
 
-  test("リストのソートを行う", () => {
-    expect(readLeftList(sampleList).sort()).toEqual([1, 2, 3, 3, 3, 4]);
-    expect(readRightList(sampleList).sort()).toEqual([3, 3, 3, 4, 5, 9]);
-  });
-
   test("リストの右と左の差異を出す", () => {
-    const actual = differenceNumber(
+    const actual = calculateDifferenceList(
       [1, 2, 3, 3, 3, 4, 9],
       [3, 3, 3, 4, 5, 9, 5]
     );
@@ -38,12 +33,12 @@ describe("リストの調整処理", () => {
   });
 
   test("差異の結果を全て足す", () => {
-    const actual = differenceTotal([2, 1, 0, 1, 2, 5]);
+    const actual = sumOfDifferences([2, 1, 0, 1, 2, 5]);
     expect(actual).toBe(11);
   });
 
   test("文字列のリストを渡されるとその左右の差異を合計して返す", () => {
-    const actual = totalDifferenceList(sampleList);
+    const actual = calculateTotalDifference(sampleList);
     expect(actual).toBe(11);
   });
 });

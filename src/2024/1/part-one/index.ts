@@ -1,29 +1,36 @@
-const readList = (listStr: string, index: number): number[] =>
-  listStr
+const parseLocationList = (
+  locationListStr: string,
+  columnIndex: number
+): number[] =>
+  locationListStr
     .split("\n")
-    .map((rowStr) => rowStr.split("   ")[index])
+    .map((rowStr) => rowStr.split("   ")[columnIndex])
     .map(Number);
 
-export const readLeftList = (listStr: string): number[] => readList(listStr, 0);
+export const parseLeftColumn = (locationListStr: string): number[] =>
+  parseLocationList(locationListStr, 0);
 
-export const readRightList = (listStr: string): number[] =>
-  readList(listStr, 1);
+export const parseRightColumn = (locationListStr: string): number[] =>
+  parseLocationList(locationListStr, 1);
 
-export const differenceNumber = (
-  leftList: number[],
-  rightList: number[]
+export const calculateDifferenceList = (
+  leftLocationList: number[],
+  rightLocationList: number[]
 ): number[] =>
-  leftList.map((left, index) =>
-    rightList[index] > left ? rightList[index] - left : left - rightList[index]
+  leftLocationList.map((left, index) =>
+    Math.abs(left - rightLocationList[index])
   );
 
-export const differenceTotal = (list: number[]): number =>
-  list.reduce((previousValue, currentValue) => previousValue + currentValue, 0);
+export const sumOfDifferences = (differenceList: number[]): number =>
+  differenceList.reduce(
+    (previousValue, currentValue) => previousValue + currentValue,
+    0
+  );
 
-export const totalDifferenceList = (listStr: string): number =>
-  differenceTotal(
-    differenceNumber(
-      readLeftList(listStr).sort(),
-      readRightList(listStr).sort()
+export const calculateTotalDifference = (locationListStr: string): number =>
+  sumOfDifferences(
+    calculateDifferenceList(
+      parseLeftColumn(locationListStr).slice().sort(),
+      parseRightColumn(locationListStr).slice().sort()
     )
   );
